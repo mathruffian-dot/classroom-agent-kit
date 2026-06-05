@@ -145,6 +145,28 @@ async function main() {
         await createAssignment(classroom, assignCourseId, title, description, materialsList);
         break;
 
+      case 'update-assignment':
+        const updateCourseId = args[1];
+        const updateId = args[2];
+        const updateTitle = args[3];
+        const updateDesc = args[4] || '';
+        if (!updateCourseId || !updateId || !updateTitle) {
+          console.error('Error: Missing parameters. Usage: node classroom-cli.js update-assignment <courseId> <assignmentId> <title> [description]');
+          process.exit(1);
+        }
+        await updateAssignment(classroom, updateCourseId, updateId, updateTitle, updateDesc);
+        break;
+
+      case 'delete-assignment':
+        const delCourseId = args[1];
+        const delId = args[2];
+        if (!delCourseId || !delId) {
+          console.error('Error: Missing parameters. Usage: node classroom-cli.js delete-assignment <courseId> <assignmentId>');
+          process.exit(1);
+        }
+        await deleteAssignment(classroom, delCourseId, delId);
+        break;
+
       default:
         console.log(`Unknown command: '${command}'`);
         printHelp();
@@ -165,6 +187,8 @@ Usage:
   node classroom-cli.js post-announcement <courseId> <text>  Post announcement to course stream
   node classroom-cli.js list-coursework <courseId>    List assignments for a course
   node classroom-cli.js create-assignment <courseId> <title> [description] [link1] [link2] ...  Create a course assignment with attachments
+  node classroom-cli.js update-assignment <courseId> <assignmentId> <title> [description]      Update an assignment title/description
+  node classroom-cli.js delete-assignment <courseId> <assignmentId>                            Delete an assignment
   `);
 }
 
@@ -247,6 +271,35 @@ async function createAssignment(classroom, courseId, title, description, materia
     }
   });
   console.log(`Assignment created successfully! Link: ${res.data.alternateLink}`);
+}
+
+async function updateAssignment(classroom, courseId, id, title, description) {
+  const updateMasks = [];
+  const requestBody = {};
+  if (title) {
+    requestBody.title = title;
+    updateMasks.push('title');
+  }
+  if (description) {
+    requestBody.description = description;
+    updateMasks.push('description');
+  }
+
+  const res = await classroom.courses.courseWork.patch({
+    courseId: courseId,
+    id: id,
+    updateMask: updateMasks.join(','),
+    requestBody: requestBody
+  });
+  console.log(`Assignment updated successfully! Link: ${res.data.alternateLink}`);
+}
+
+async function deleteAssignment(classroom, courseId, id) {
+  await classroom.courses.courseWork.delete({
+    courseId: courseId,
+    id: id
+  });
+  console.log(`Assignment ${id} deleted successfully.`);
 }
 
 main();

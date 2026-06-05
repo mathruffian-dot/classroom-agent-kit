@@ -1,0 +1,8 @@
+node_modules/
+token.json
+credentials.json
+.netlify/
+.clasp.json
+.env
+*.log
+package-lock.json

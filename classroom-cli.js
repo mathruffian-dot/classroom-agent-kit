@@ -137,11 +137,12 @@ async function main() {
         const assignCourseId = args[1];
         const title = args[2];
         const description = args[3] || '';
+        const materialsList = args.slice(4);
         if (!assignCourseId || !title) {
-          console.error('Error: Missing parameters. Usage: node classroom-cli.js create-assignment <courseId> <title> [description]');
+          console.error('Error: Missing parameters. Usage: node classroom-cli.js create-assignment <courseId> <title> [description] [link1] [link2] ...');
           process.exit(1);
         }
-        await createAssignment(classroom, assignCourseId, title, description);
+        await createAssignment(classroom, assignCourseId, title, description, materialsList);
         break;
 
       default:
@@ -163,7 +164,7 @@ Usage:
   node classroom-cli.js list-students <courseId>      List students in a course
   node classroom-cli.js post-announcement <courseId> <text>  Post announcement to course stream
   node classroom-cli.js list-coursework <courseId>    List assignments for a course
-  node classroom-cli.js create-assignment <courseId> <title> [description]  Create a course assignment
+  node classroom-cli.js create-assignment <courseId> <title> [description] [link1] [link2] ...  Create a course assignment with attachments
   `);
 }
 
@@ -228,14 +229,21 @@ async function listCourseWork(classroom, courseId) {
   })), null, 2));
 }
 
-async function createAssignment(classroom, courseId, title, description) {
+async function createAssignment(classroom, courseId, title, description, materialsList = []) {
+  const materials = materialsList.map(url => ({
+    link: {
+      url: url
+    }
+  }));
+
   const res = await classroom.courses.courseWork.create({
     courseId: courseId,
     requestBody: {
       title: title,
       description: description,
       workType: 'ASSIGNMENT',
-      state: 'PUBLISHED'
+      state: 'PUBLISHED',
+      materials: materials.length > 0 ? materials : undefined
     }
   });
   console.log(`Assignment created successfully! Link: ${res.data.alternateLink}`);

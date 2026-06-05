@@ -1,7 +1,7 @@
 {
   "name": "classroom-tools",
   "version": "1.0.0",
-  "description": "",
+  "description": "Google Classroom Agent & Web Sync Kit — 供本機 AI agent 操作 Google Classroom 的 CLI 與網頁同步工具",
   "main": "app.js",
   "bin": {
     "classroom-cli": "./classroom-cli.js"
@@ -15,7 +15,6 @@
   "type": "commonjs",
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
-    "@google/clasp": "^3.3.0",
     "googleapis": "^173.0.0"
   }
 }

@@ -115,3 +115,47 @@ Run commands directly from the terminal. If you are using an AI Agent, the agent
   ```bash
   classroom-cli list-coursework <courseId>
   ```
+
+---
+
+## 🩺 安裝疑難排解（Troubleshooting）
+
+依「最常踩」排序，安裝／首次授權時若卡住先看這裡：
+
+### 1. CLI 憑證一定要選「桌面應用程式」類型
+`classroom-cli` 透過 `@google-cloud/local-auth` 授權，**只吃 Desktop application 類型的 OAuth 憑證**。
+若誤用 Web application 那組，授權會失敗或拿不到 refresh token。下載後務必改名為 **`credentials.json`**，
+放在與 `classroom-cli.js` **同一層目錄**（程式以 `__dirname` 定位，放錯就會報 `credentials.json is missing`）。
+> 注意：CLI（Desktop）與網頁端（Web App）用的是**兩組不同的 Client ID**，不要互換。
+
+### 2. OAuth 同意畫面在「測試中」→ 必須把自己加進 Test Users
+同意畫面選 External 後，**要把你要登入的 Google 帳號加到 Test Users 名單**，否則 `classroom-cli auth`
+會被擋（`access_denied` / 未通過驗證）。使用學校 Google Workspace 帳號時，若網域管理員鎖定第三方
+App 存取，個人將無法授權，需請管理員開放或改用一般 Gmail 測試。
+
+### 3. 改了 Scope 之後，務必刪掉舊的 `token.json` 再重新授權
+本 CLI 需要以下 5 個 scope（缺了會在跑 `post-announcement` / `create-assignment` 時噴 403）：
+`classroom.courses.readonly`、`classroom.rosters.readonly`、`classroom.announcements`、
+`classroom.coursework.me`、`classroom.coursework.students`。
+程式只要偵測到 `token.json` 存在就會沿用舊權限，**改 scope 後不會自動更新**，
+因此調整 scope 後請：
+```bash
+# 刪掉舊 token，再重新授權
+rm token.json   # Windows PowerShell: Remove-Item token.json
+classroom-cli auth
+```
+
+### 4. `npm link` 失敗或 `classroom-cli` 找不到指令
+`npm link` 需寫入全域 node_modules，Windows 上有時需系統管理員權限；若全域 npm bin 不在 PATH，
+打 `classroom-cli` 會 command not found。**最簡單的退路是不 link，直接用：**
+```bash
+node classroom-cli.js list-courses
+```
+效果完全相同。
+
+### 5. Node.js 版本
+`googleapis@^173` 建議在 **Node.js 18 / 20 LTS（含）以上**執行，Node 太舊可能在 `npm install` 階段失敗。
+
+### 6. 找不到 courseId
+`list-students`、`post-announcement` 等指令的 `<courseId>` 是**數字 ID**，不是課程名稱。
+先跑 `classroom-cli list-courses`，從輸出的 `id` 欄位複製對應課程的 ID。

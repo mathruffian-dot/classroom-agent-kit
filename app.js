@@ -25,7 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
     soundEnabled: localStorage.getItem("classbuddy_sound") !== "false",
     activeTab: "picker-tab",
     pickerMode: "wheel", // 'wheel' or 'slot'
-    isDrawing: false
+    isDrawing: false,
+    attendance: JSON.parse(localStorage.getItem("classbuddy_attendance")) || {}
   };
 
   const presetClassA = [
@@ -43,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("classbuddy_roster", JSON.stringify(state.roster));
     localStorage.setItem("classbuddy_teams", JSON.stringify(state.teams));
     localStorage.setItem("classbuddy_sound", state.soundEnabled);
+    localStorage.setItem("classbuddy_attendance", JSON.stringify(state.attendance));
     updateRosterCountDisplay();
   }
 
@@ -157,7 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "scoreboard-tab": "小組積分榮譽榜 🏆",
     "timer-tab": "上課計時與碼表 ⏳",
     "noise-tab": "教室環境分貝監測 🔊",
-    "group-tab": "隨機團隊分組器 👥"
+    "group-tab": "隨機團隊分組器 👥",
+    "rollcall-tab": "線上點名系統 📋"
   };
 
   navBtns.forEach(btn => {
@@ -191,6 +194,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Custom actions per tab switch
     if (tabId === "noise-tab") {
       // Noise monitor tab activated
+    } else if (tabId === "rollcall-tab") {
+      initRollcall();
     } else {
       // Deactivate microphone if moving away from noise tab to save resource/privacy
       stopMicrophone();
@@ -264,6 +269,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Re-draw wheel if active
     if (state.activeTab === "picker-tab") {
       initWheel();
+    } else if (state.activeTab === "rollcall-tab") {
+      initRollcall();
     }
   });
 
@@ -1646,6 +1653,203 @@ document.addEventListener("DOMContentLoaded", () => {
   disconnectClassroomBtn.addEventListener("click", () => {
     playSynthSound("click");
     logoutGoogle();
+  });
+
+  // ==========================================================================
+  // TAB 6: ONLINE ROLL-CALL LOGIC
+  // ==========================================================================
+  const rcGrid = document.getElementById("rollcall-grid");
+  const rcStatTotal = document.getElementById("rc-stat-total");
+  const rcStatPresent = document.getElementById("rc-stat-present");
+  const rcStatExcused = document.getElementById("rc-stat-excused");
+  const rcStatAbsent = document.getElementById("rc-stat-absent");
+
+  const rcAllPresentBtn = document.getElementById("rc-all-present-btn");
+  const rcResetBtn = document.getElementById("rc-reset-btn");
+  const rcExportCsvBtn = document.getElementById("rc-export-csv-btn");
+  const rcCopyTextBtn = document.getElementById("rc-copy-text-btn");
+
+  // Load attendance state on load
+  state.attendance = JSON.parse(localStorage.getItem("classbuddy_attendance")) || {};
+
+  // Clean up attendance status for removed students or initialize new ones
+  function syncAttendanceState() {
+    const newAttendance = {};
+    state.roster.forEach(name => {
+      // Keep existing status if present, otherwise default to "present"
+      newAttendance[name] = state.attendance[name] || "present";
+    });
+    state.attendance = newAttendance;
+    saveState();
+  }
+
+  function initRollcall() {
+    syncAttendanceState();
+    renderRollcallGrid();
+    updateRollcallStats();
+  }
+
+  function updateRollcallStats() {
+    const total = state.roster.length;
+    let present = 0;
+    let excused = 0;
+    let absent = 0;
+
+    Object.values(state.attendance).forEach(status => {
+      if (status === "present") present++;
+      else if (status === "excused") excused++;
+      else if (status === "absent") absent++;
+    });
+
+    rcStatTotal.textContent = total;
+    rcStatPresent.textContent = present;
+    rcStatExcused.textContent = excused;
+    rcStatAbsent.textContent = absent;
+  }
+
+  function setStudentStatus(name, status) {
+    state.attendance[name] = status;
+    saveState();
+    updateRollcallStats();
+
+    // Play feedback sound
+    if (status === "present") {
+      playSynthSound("click");
+    } else if (status === "excused") {
+      playSynthSound("tick");
+    } else if (status === "absent") {
+      playSynthSound("scoreDown");
+    }
+
+    // Update the specific student card DOM classes and badge
+    const card = document.querySelector(`[data-rc-student="${name}"]`);
+    if (card) {
+      card.className = `rc-student-card status-${status}`;
+      const badge = card.querySelector(".rc-status-badge");
+      if (badge) {
+        if (status === "present") badge.textContent = "出席";
+        else if (status === "excused") badge.textContent = "請假";
+        else if (status === "absent") badge.textContent = "缺席";
+      }
+    }
+  }
+
+  function renderRollcallGrid() {
+    rcGrid.innerHTML = "";
+    if (state.roster.length === 0) {
+      rcGrid.innerHTML = '<div class="empty-text">尚無學生名冊，請先匯入或新增學生名單！</div>';
+      return;
+    }
+
+    state.roster.forEach(name => {
+      const status = state.attendance[name] || "present";
+      const card = document.createElement("div");
+      card.classList.add("rc-student-card", `status-${status}`);
+      card.setAttribute("data-rc-student", name);
+
+      let statusText = "出席";
+      if (status === "excused") statusText = "請假";
+      else if (status === "absent") statusText = "缺席";
+
+      card.innerHTML = `
+        <div class="rc-student-name">${name}</div>
+        <div class="rc-status-badge">${statusText}</div>
+        <div class="rc-switch-group">
+          <button class="rc-switch-btn btn-present" title="標記出席">出席</button>
+          <button class="rc-switch-btn btn-excused" title="標記請假">請假</button>
+          <button class="rc-switch-btn btn-absent" title="標記缺席">缺席</button>
+        </div>
+      `;
+
+      card.querySelector(".btn-present").addEventListener("click", () => setStudentStatus(name, "present"));
+      card.querySelector(".btn-excused").addEventListener("click", () => setStudentStatus(name, "excused"));
+      card.querySelector(".btn-absent").addEventListener("click", () => setStudentStatus(name, "absent"));
+
+      rcGrid.appendChild(card);
+    });
+  }
+
+  rcAllPresentBtn.addEventListener("click", () => {
+    playSynthSound("win");
+    state.roster.forEach(name => {
+      state.attendance[name] = "present";
+    });
+    saveState();
+    renderRollcallGrid();
+    updateRollcallStats();
+  });
+
+  rcResetBtn.addEventListener("click", () => {
+    if (confirm("確定要重置所有點名狀態嗎？")) {
+      playSynthSound("scoreDown");
+      state.roster.forEach(name => {
+        state.attendance[name] = "present";
+      });
+      saveState();
+      renderRollcallGrid();
+      updateRollcallStats();
+    }
+  });
+
+  rcExportCsvBtn.addEventListener("click", () => {
+    playSynthSound("win");
+    let csvContent = "\uFEFF姓名,出缺席狀態\n"; // UTF-8 BOM for Excel Chinese characters
+    state.roster.forEach(name => {
+      const status = state.attendance[name] || "present";
+      let statusText = "出席";
+      if (status === "excused") statusText = "請假";
+      else if (status === "absent") statusText = "缺席";
+      csvContent += `"${name}","${statusText}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ClassBuddy_點名記錄_${date}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  rcCopyTextBtn.addEventListener("click", () => {
+    playSynthSound("win");
+    const date = new Date().toLocaleDateString("zh-TW", { year: 'numeric', month: '2-digit', day: '2-digit' });
+    let presentList = [];
+    let excusedList = [];
+    let absentList = [];
+
+    state.roster.forEach(name => {
+      const status = state.attendance[name] || "present";
+      if (status === "present") presentList.push(name);
+      else if (status === "excused") excusedList.push(name);
+      else if (status === "absent") absentList.push(name);
+    });
+
+    const report = `📋 ClassBuddy 點名報告 (${date})
+=========================
+應到人數：${state.roster.length} 人
+實到人數：${presentList.length} 人
+請假人數：${excusedList.length} 人
+缺席人數：${absentList.length} 人
+=========================
+✅ 出席名單 (${presentList.length}人)：
+${presentList.join("、") || "（無）"}
+
+⏳ 請假名單 (${excusedList.length}人)：
+${excusedList.join("、") || "（無）"}
+
+❌ 缺席名單 (${absentList.length}人)：
+${absentList.join("、") || "（無）"}`;
+
+    navigator.clipboard.writeText(report).then(() => {
+      alert("點名報告已成功複製至剪貼簿！");
+    }).catch(err => {
+      console.error("Failed to copy report: ", err);
+      alert("複製失敗，請手動複製！");
+    });
   });
 
 });

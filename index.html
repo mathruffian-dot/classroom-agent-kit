@@ -42,6 +42,10 @@
           <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           隨機分組
         </button>
+        <button class="nav-btn" data-tab="rollcall-tab">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="15" y2="17"></line></svg>
+          線上點名
+        </button>
       </nav>
       
       <!-- Shared Student Roster Trigger inside Sidebar bottom -->
@@ -289,6 +293,75 @@
                   <span class="empty-icon">👥</span>
                   <p>設定好左側規則後，點擊「隨機產生分組」</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. Online Rollcall Tab -->
+        <section id="rollcall-tab" class="tab-panel">
+          <div class="rollcall-layout">
+            <!-- Roster Stats Overview Board -->
+            <div class="rollcall-stats-board">
+              <div class="stat-card total">
+                <span class="stat-emoji">👥</span>
+                <div class="stat-info">
+                  <span class="stat-label">班級總人數</span>
+                  <span id="rc-stat-total" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="stat-card present">
+                <span class="stat-emoji">✅</span>
+                <div class="stat-info">
+                  <span class="stat-label">出席人數</span>
+                  <span id="rc-stat-present" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="stat-card excused">
+                <span class="stat-emoji">⏳</span>
+                <div class="stat-info">
+                  <span class="stat-label">請假人數</span>
+                  <span id="rc-stat-excused" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="stat-card absent">
+                <span class="stat-emoji">❌</span>
+                <div class="stat-info">
+                  <span class="stat-label">缺席人數</span>
+                  <span id="rc-stat-absent" class="stat-value">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions Bar -->
+            <div class="rollcall-actions card">
+              <div class="actions-left">
+                <button id="rc-all-present-btn" class="btn btn-primary">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  一鍵全部出席
+                </button>
+                <button id="rc-reset-btn" class="btn btn-secondary">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                  重置點名狀態
+                </button>
+              </div>
+              <div class="actions-right">
+                <button id="rc-export-csv-btn" class="btn btn-secondary">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+                  匯出出席記錄 (CSV)
+                </button>
+                <button id="rc-copy-text-btn" class="btn btn-secondary">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  複製文字報告
+                </button>
+              </div>
+            </div>
+
+            <!-- Student Grid -->
+            <div class="rollcall-board card">
+              <h3 class="card-title">📋 點名簿名冊</h3>
+              <div id="rollcall-grid" class="rollcall-grid">
+                <!-- Dynamically populated student cards -->
               </div>
             </div>
           </div>

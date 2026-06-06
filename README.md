@@ -159,3 +159,31 @@ node classroom-cli.js list-courses
 ### 6. 找不到 courseId
 `list-students`、`post-announcement` 等指令的 `<courseId>` 是**數字 ID**，不是課程名稱。
 先跑 `classroom-cli list-courses`，從輸出的 `id` 欄位複製對應課程的 ID。
+
+---
+
+## 🚀 進階功能：讓 AI Agent 下載與讀取學生作業檔案
+
+若要讓 AI Agent 具備「下載與讀取學生所上傳的作業檔案（如 Google 文件、PDF、Word 檔）」之功能，必須額外設定 Google Drive API 權限：
+
+### 1. 啟用 Google Drive API
+* 前往 [Google Cloud Console API 庫](https://console.cloud.google.com/apis/library)，搜尋並啟用 **`Google Drive API`**。
+
+### 2. 新增 OAuth Scopes 範圍
+* 進入「Google Auth Platform」->「**資料存取權** (Scopes)」。
+* 點擊「**新增或移除範圍**」，搜尋並勾選以下權限：
+  * `https://www.googleapis.com/auth/drive.readonly` (查看您 Google 雲端硬碟中的檔案)
+* 點選「**更新**」，並點擊「**儲存**」。
+
+### 3. 重置本地認證金鑰
+* 由於 Scopes 被修改，舊的金鑰將無法使用。請刪除本地的 `token.json`：
+  ```bash
+  # Windows PowerShell
+  Remove-Item token.json
+  # macOS / Linux
+  rm token.json
+  ```
+* 重新執行認證指令，並在瀏覽器授權畫面中，勾選新增的「查看您的 Google 雲端硬碟檔案」權限：
+  ```bash
+  node classroom-cli.js auth
+  ```
